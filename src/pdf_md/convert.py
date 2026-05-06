@@ -39,13 +39,30 @@ def _organize_images(md_path: Path) -> None:
     out_dir = md_path.parent
     images_dir = out_dir / "images"
     moved_names: set[str] = set()
-    for sibling in list(out_dir.iterdir()):
-        if sibling == md_path or sibling.is_dir():
+
+    for path in out_dir.rglob("*"):
+        if not path.is_file() or path == md_path:
             continue
-        if sibling.suffix.lower() in IMAGE_SUFFIXES:
-            images_dir.mkdir(exist_ok=True)
-            shutil.move(str(sibling), str(images_dir / sibling.name))
-            moved_names.add(sibling.name)
+        if path.suffix.lower() not in IMAGE_SUFFIXES:
+            continue
+        if path.parent == images_dir:
+            moved_names.add(path.name)
+            continue
+        images_dir.mkdir(exist_ok=True)
+        dest = images_dir / path.name
+        if dest.exists():
+            dest = images_dir / f"{path.stem}_{path.parent.name}{path.suffix}"
+        shutil.move(str(path), str(dest))
+        moved_names.add(dest.name)
+
+    for d in sorted(
+        (p for p in out_dir.rglob("*") if p.is_dir() and p != images_dir),
+        key=lambda p: -len(p.parts),
+    ):
+        try:
+            d.rmdir()
+        except OSError:
+            pass
 
     if not moved_names:
         return
@@ -54,9 +71,9 @@ def _organize_images(md_path: Path) -> None:
 
     def repl(m: re.Match[str]) -> str:
         prefix, target, suffix = m.group(1), m.group(2), m.group(3)
-        target_clean = target.strip().lstrip("./")
-        if target_clean in moved_names:
-            return f"{prefix}images/{target_clean}{suffix}"
+        basename = Path(target.strip()).name
+        if basename in moved_names:
+            return f"{prefix}images/{basename}{suffix}"
         return m.group(0)
 
     md_path.write_text(IMAGE_LINK_RE.sub(repl, text), encoding="utf-8")
