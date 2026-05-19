@@ -4,6 +4,11 @@ import typer
 
 from .convert import convert_one, find_pdfs
 
+# cli.py(0) → pdf_md(1) → src(2) → pdf-md(3) → tools(4) → Learning(5? — workspace)
+WORKSPACE = Path(__file__).resolve().parents[4]
+DEFAULT_INPUT = WORKSPACE / "input"
+DEFAULT_OUTPUT = WORKSPACE / "input"
+
 app = typer.Typer(no_args_is_help=True, add_completion=False, help="Convert PDFs to Markdown.")
 
 
@@ -17,8 +22,8 @@ def convert(
     filename: str | None = typer.Argument(
         None, help="PDF basename inside input dir; omit to batch all"
     ),
-    input_dir: Path = typer.Option(Path("input"), "--input-dir", help="Directory holding PDFs"),
-    output_dir: Path = typer.Option(Path("output"), "--output-dir", help="Output directory"),
+    input_dir: Path = typer.Option(DEFAULT_INPUT, "--input-dir", help="Directory holding PDFs"),
+    output_dir: Path = typer.Option(DEFAULT_OUTPUT, "--output-dir", help="Output directory"),
     ocr: bool = typer.Option(False, "--ocr/--no-ocr", help="Enable Docling OCR"),
     force: bool = typer.Option(False, "--force", help="Overwrite existing output"),
 ) -> None:
